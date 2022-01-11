@@ -1,7 +1,6 @@
 use nom::branch::alt;
 use nom::bytes::streaming::{tag, take_while, take_while1, take_while_m_n};
 use nom::combinator::opt;
-use nom::multi::many_till;
 use nom::sequence::{preceded, terminated, tuple};
 use nom::IResult;
 
@@ -28,10 +27,8 @@ use nom::IResult;
 pub enum RawEventLine<'a> {
     Comment(&'a str),
     Field(&'a str, Option<&'a str>),
+    Empty,
 }
-
-#[derive(Debug)]
-pub struct RawEvent<'a>(Vec<RawEventLine<'a>>);
 
 #[inline]
 fn is_lf(c: char) -> bool {
@@ -54,7 +51,7 @@ fn is_colon(c: char) -> bool {
 }
 
 #[inline]
-fn is_bom(c: char) -> bool {
+pub fn is_bom(c: char) -> bool {
     c == '\u{feff}'
 }
 
@@ -116,23 +113,10 @@ fn field(input: &str) -> IResult<&str, RawEventLine> {
 }
 
 #[inline]
-fn event(input: &str) -> IResult<&str, RawEvent> {
-    many_till(alt((comment, field)), end_of_line)(input)
-        .map(|(input, (lines, _))| (input, RawEvent(lines)))
+fn empty(input: &str) -> IResult<&str, RawEventLine> {
+    end_of_line(input).map(|(i, _)| (i, RawEventLine::Empty))
 }
 
-pub fn events(mut input: &str) -> IResult<&str, Vec<RawEvent>> {
-    let mut out = Vec::new();
-    while let Ok((i, e)) = event(input) {
-        out.push(e);
-        input = i;
-    }
-    Ok((input, out))
-}
-
-pub fn stream(input: &str) -> IResult<&str, Vec<RawEvent>> {
-    if input.is_empty() {
-        return Ok((input, Vec::default()));
-    }
-    preceded(opt(take_while_m_n(1, 1, is_bom)), events)(input)
+pub fn line(input: &str) -> IResult<&str, RawEventLine> {
+    alt((comment, field, empty))(input)
 }
