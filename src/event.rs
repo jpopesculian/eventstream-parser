@@ -7,11 +7,11 @@ use core::time::Duration;
 #[derive(Default, Debug, Eq, PartialEq)]
 pub struct Event {
     /// The event name if given
-    pub event: Option<String>,
+    pub event: String,
     /// The event data
     pub data: String,
     /// The event id if given
-    pub id: Option<String>,
+    pub id: String,
     /// Retry duration if given
     pub retry: Option<Duration>,
 }

@@ -3,6 +3,7 @@
 #[cfg(not(feature = "std"))]
 extern crate alloc;
 
-pub mod event;
-pub mod parser;
+mod event;
+mod event_stream;
+mod parser;
 mod utf8_stream;

@@ -31,22 +31,22 @@ pub enum RawEventLine<'a> {
 }
 
 #[inline]
-fn is_lf(c: char) -> bool {
+pub fn is_lf(c: char) -> bool {
     c == '\u{000A}'
 }
 
 #[inline]
-fn is_cr(c: char) -> bool {
+pub fn is_cr(c: char) -> bool {
     c == '\u{000D}'
 }
 
 #[inline]
-fn is_space(c: char) -> bool {
+pub fn is_space(c: char) -> bool {
     c == '\u{0020}'
 }
 
 #[inline]
-fn is_colon(c: char) -> bool {
+pub fn is_colon(c: char) -> bool {
     c == '\u{003A}'
 }
 
@@ -56,7 +56,7 @@ pub fn is_bom(c: char) -> bool {
 }
 
 #[inline]
-fn is_name_char(c: char) -> bool {
+pub fn is_name_char(c: char) -> bool {
     match c {
         '\u{0000}'..='\u{0009}'
         | '\u{000B}'..='\u{000C}'
@@ -67,7 +67,7 @@ fn is_name_char(c: char) -> bool {
 }
 
 #[inline]
-fn is_any_char(c: char) -> bool {
+pub fn is_any_char(c: char) -> bool {
     match c {
         '\u{0000}'..='\u{0009}' | '\u{000B}'..='\u{000C}' | '\u{000E}'..='\u{10FFFF}' => true,
         _ => false,

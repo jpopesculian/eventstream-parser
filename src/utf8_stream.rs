@@ -14,23 +14,23 @@ use pin_project::pin_project;
 
 #[pin_project]
 pub struct Utf8Stream<S> {
-    buffer: Vec<u8>,
     #[pin]
     stream: S,
+    buffer: Vec<u8>,
     terminated: bool,
 }
 
 impl<S> Utf8Stream<S> {
     pub fn new(stream: S) -> Self {
         Self {
-            buffer: Vec::new(),
             stream,
+            buffer: Vec::new(),
             terminated: false,
         }
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, PartialEq)]
 pub enum Utf8StreamError<E> {
     Utf8(FromUtf8Error),
     Transport(E),
