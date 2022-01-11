@@ -8,7 +8,6 @@ use alloc::{
 use std::string::FromUtf8Error;
 
 use core::pin::Pin;
-use core::str::Utf8Error;
 use futures_core::stream::Stream;
 use futures_core::task::{Context, Poll};
 use pin_project::pin_project;
@@ -31,6 +30,7 @@ impl<S> Utf8Stream<S> {
     }
 }
 
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Utf8StreamError<E> {
     Utf8(FromUtf8Error),
     Transport(E),
@@ -83,5 +83,96 @@ where
             }
             Poll::Pending => Poll::Pending,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use futures::prelude::*;
+
+    #[tokio::test]
+    async fn valid_streams() {
+        assert_eq!(
+            Utf8Stream::new(futures::stream::iter(vec![Ok::<_, ()>(b"Hello, world!")]))
+                .try_collect::<Vec<_>>()
+                .await
+                .unwrap(),
+            vec!["Hello, world!"]
+        );
+        assert_eq!(
+            Utf8Stream::new(futures::stream::iter(vec![Ok::<_, ()>("Hello, world!")]))
+                .try_collect::<Vec<_>>()
+                .await
+                .unwrap(),
+            vec!["Hello, world!"]
+        );
+        assert_eq!(
+            Utf8Stream::new(futures::stream::iter(vec![Ok::<_, ()>("")]))
+                .try_collect::<Vec<_>>()
+                .await
+                .unwrap(),
+            vec![""]
+        );
+        assert_eq!(
+            Utf8Stream::new(futures::stream::iter(vec![
+                Ok::<_, ()>("Hello"),
+                Ok::<_, ()>(", world!")
+            ]))
+            .try_collect::<Vec<_>>()
+            .await
+            .unwrap(),
+            vec!["Hello", ", world!"]
+        );
+        assert_eq!(
+            Utf8Stream::new(futures::stream::iter(vec![Ok::<_, ()>(vec![
+                240, 159, 145, 141
+            ]),]))
+            .try_collect::<Vec<_>>()
+            .await
+            .unwrap(),
+            vec!["👍"]
+        );
+        assert_eq!(
+            Utf8Stream::new(futures::stream::iter(vec![
+                Ok::<_, ()>(vec![240, 159]),
+                Ok::<_, ()>(vec![145, 141])
+            ]))
+            .try_collect::<Vec<_>>()
+            .await
+            .unwrap(),
+            vec!["", "👍"]
+        );
+        assert_eq!(
+            Utf8Stream::new(futures::stream::iter(vec![
+                Ok::<_, ()>(vec![240, 159]),
+                Ok::<_, ()>(vec![145, 141, 240, 159, 145, 141])
+            ]))
+            .try_collect::<Vec<_>>()
+            .await
+            .unwrap(),
+            vec!["", "👍👍"]
+        );
+    }
+
+    #[tokio::test]
+    async fn invalid_streams() {
+        let results = Utf8Stream::new(futures::stream::iter(vec![Ok::<_, ()>(vec![240, 159])]))
+            .collect::<Vec<_>>()
+            .await;
+        assert_eq!(results.len(), 2);
+        assert_eq!(results[0], Ok("".to_string()));
+        assert!(matches!(results[1], Err(Utf8StreamError::Utf8(_))));
+
+        let results = Utf8Stream::new(futures::stream::iter(vec![
+            Ok::<_, ()>(vec![240, 159]),
+            Ok::<_, ()>(vec![145, 141, 240, 159, 145]),
+        ]))
+        .collect::<Vec<_>>()
+        .await;
+        assert_eq!(results.len(), 3);
+        assert_eq!(results[0], Ok("".to_string()));
+        assert_eq!(results[1], Ok("👍".to_string()));
+        assert!(matches!(results[2], Err(Utf8StreamError::Utf8(_))));
     }
 }
